@@ -1,0 +1,323 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Wall Clock & Alarm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single centred station clock, with the alarm panel set beneath it like a control plate */
+:root {
+  --bg: #e9ecef;
+  --plate: #f7f8f9;
+  --face: #ffffff;
+  --ink: #16202b;
+  --muted: #5d6b79;
+  --rule: #c9d0d7;
+  --signal: #d4231c;
+  --signal-soft: #fbe3e1;
+  --ok: #1f7a4d;
+  --display: "Jost", "Futura", "Century Gothic", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1419; --plate: #171e25; --face: #1d252e; --ink: #e8edf2;
+    --muted: #93a1ae; --rule: #2d3844; --signal: #ff4a3d; --signal-soft: #3a1714; --ok: #4cc58a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1419; --plate: #171e25; --face: #1d252e; --ink: #e8edf2;
+  --muted: #93a1ae; --rule: #2d3844; --signal: #ff4a3d; --signal-soft: #3a1714; --ok: #4cc58a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--display);
+  padding-inline: 16px; padding-block: 32px 48px;
+  min-height: 100%;
+}
+main { max-width: 440px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; align-items: stretch; }
+
+.clock-wrap { position: relative; width: 100%; max-width: 380px; margin: 0 auto; aspect-ratio: 1; }
+svg.clock { width: 100%; height: 100%; display: block; }
+.bezel { fill: var(--ink); }
+.face { fill: var(--face); }
+.tick { stroke: var(--ink); stroke-linecap: butt; }
+.num { fill: var(--ink); font-family: var(--display); font-weight: 500; font-size: 15px; text-anchor: middle; dominant-baseline: central; }
+.brand { fill: var(--muted); font-family: var(--mono); font-size: 6.5px; letter-spacing: 1.5px; text-anchor: middle; }
+.hand { fill: var(--ink); }
+.sec { stroke: var(--signal); stroke-width: 1.6; stroke-linecap: round; }
+.sec-disc { fill: var(--signal); }
+.alarm-hand { stroke: var(--signal); stroke-width: 2.5; stroke-linecap: round; opacity: .55; }
+.alarm-tip { fill: var(--signal); opacity: .75; }
+.ringing svg.clock { animation: shake .12s linear infinite; }
+@keyframes shake { 0%,100%{transform:rotate(0)} 25%{transform:rotate(1.2deg)} 75%{transform:rotate(-1.2deg)} }
+@media (prefers-reduced-motion: reduce) { .ringing svg.clock { animation: none; } }
+
+.readout { text-align: center; display: flex; flex-direction: column; gap: 4px; }
+.digital { font-family: var(--mono); font-size: 1.9rem; font-weight: 500; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.date { color: var(--muted); font-size: .95rem; letter-spacing: .02em; }
+
+.plate {
+  background: var(--plate); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 18px; display: flex; flex-direction: column; gap: 14px;
+}
+.plate h2 { margin: 0; font-size: .78rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.status { font-family: var(--mono); font-size: .75rem; letter-spacing: .02em; text-transform: none; font-weight: 400; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--rule); color: var(--muted); }
+.status.on { color: var(--ok); border-color: currentColor; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+.field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 140px; min-width: 0; }
+.field label { font-size: .8rem; color: var(--muted); }
+input {
+  font: inherit; color: var(--ink); background: var(--face);
+  border: 1px solid var(--rule); border-radius: 6px; padding: 9px 10px; width: 100%;
+}
+input[type="time"] { font-family: var(--mono); font-size: 1.05rem; }
+input:focus-visible, button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+button {
+  font: inherit; font-weight: 500; cursor: pointer; border-radius: 6px; padding: 10px 16px;
+  border: 1px solid var(--ink); background: var(--ink); color: var(--face);
+}
+button.ghost { background: transparent; color: var(--ink); border-color: var(--rule); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.hint { margin: 0; font-size: .82rem; color: var(--muted); line-height: 1.45; }
+
+.ring-banner {
+  background: var(--signal-soft); border: 1.5px solid var(--signal); border-radius: 10px;
+  padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;
+}
+.ring-banner strong { font-size: 1.25rem; color: var(--signal); }
+.ring-banner .row button { flex: 1 1 120px; }
+.ring-banner .stop { background: var(--signal); border-color: var(--signal); color: #fff; }
+</style>
+
+<main id="app">
+  <div class="clock-wrap">
+    <svg class="clock" viewBox="0 0 240 240" role="img" aria-label="Analog clock">
+      <circle class="bezel" cx="120" cy="120" r="118"/>
+      <circle class="face" cx="120" cy="120" r="110"/>
+      <g id="ticks"></g>
+      <g id="nums"></g>
+      <text class="brand" x="120" y="82">QUARTZ</text>
+      <g id="alarmHand" hidden>
+        <line class="alarm-hand" x1="120" y1="120" x2="120" y2="42"/>
+        <polygon class="alarm-tip" points="120,34 116,44 124,44"/>
+      </g>
+      <polygon id="hourHand" class="hand" points="116.5,134 118,62 122,62 123.5,134"/>
+      <polygon id="minHand" class="hand" points="117.5,136 119,30 121,30 122.5,136"/>
+      <g id="secHand">
+        <line class="sec" x1="120" y1="146" x2="120" y2="22"/>
+        <circle class="sec-disc" cx="120" cy="34" r="5"/>
+      </g>
+      <circle cx="120" cy="120" r="4.5" class="sec-disc"/>
+      <circle cx="120" cy="120" r="1.6" class="face"/>
+    </svg>
+  </div>
+
+  <div class="readout">
+    <div class="digital" id="digital">--:--:--</div>
+    <div class="date" id="date"></div>
+  </div>
+
+  <section class="ring-banner" id="ringBanner" hidden aria-live="assertive">
+    <strong id="ringTitle">Alarm</strong>
+    <div class="row">
+      <button class="ghost" id="snoozeBtn" type="button">Snooze 5 min</button>
+      <button class="stop" id="stopBtn" type="button">Stop</button>
+    </div>
+  </section>
+
+  <section class="plate" aria-labelledby="alarmHeading">
+    <h2 id="alarmHeading">Alarm <span class="status" id="status">Off</span></h2>
+    <div class="row">
+      <div class="field">
+        <label for="alarmTime">Time</label>
+        <input type="time" id="alarmTime" value="07:00" required>
+      </div>
+      <div class="field">
+        <label for="alarmLabel">Label</label>
+        <input type="text" id="alarmLabel" placeholder="Wake up" maxlength="40">
+      </div>
+    </div>
+    <div class="row">
+      <button id="setBtn" type="button">Set alarm</button>
+      <button class="ghost" id="cancelBtn" type="button" disabled>Cancel</button>
+      <button class="ghost" id="testBtn" type="button">Test sound</button>
+    </div>
+    <p class="hint" id="hint">The alarm rings while this page is open. The red marker on the dial shows when it's set for.</p>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const NS = "http://www.w3.org/2000/svg";
+
+  // Dial: 60 ticks, heavier every 5, numerals 1–12
+  const ticks = $("ticks"), nums = $("nums");
+  for (let i = 0; i < 60; i++) {
+    const major = i % 5 === 0;
+    const l = document.createElementNS(NS, "line");
+    l.setAttribute("x1", 120); l.setAttribute("x2", 120);
+    l.setAttribute("y1", 14); l.setAttribute("y2", major ? 28 : 19);
+    l.setAttribute("class", "tick");
+    l.setAttribute("stroke-width", major ? 3.2 : 1.1);
+    l.setAttribute("transform", `rotate(${i * 6} 120 120)`);
+    ticks.appendChild(l);
+  }
+  for (let h = 1; h <= 12; h++) {
+    const a = h * Math.PI / 6;
+    const t = document.createElementNS(NS, "text");
+    t.setAttribute("x", (120 + 79 * Math.sin(a)).toFixed(2));
+    t.setAttribute("y", (120 - 79 * Math.cos(a)).toFixed(2));
+    t.setAttribute("class", "num");
+    t.textContent = h;
+    nums.appendChild(t);
+  }
+
+  const hourHand = $("hourHand"), minHand = $("minHand"), secHand = $("secHand");
+  const pad = n => String(n).padStart(2, "0");
+  const dateFmt = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+  // ----- Alarm state -----
+  let alarm = null;        // { h, m, label }
+  let snoozeUntil = null;  // ms timestamp
+  let ringing = false;
+  let lastFiredKey = "";
+
+  const load = () => { try { return JSON.parse(localStorage.getItem("clock-alarm") || "null"); } catch { return null; } };
+  const save = () => { try { alarm ? localStorage.setItem("clock-alarm", JSON.stringify(alarm)) : localStorage.removeItem("clock-alarm"); } catch {} };
+
+  // ----- Sound (Web Audio beeps) -----
+  let ctx = null, beepTimer = null;
+  const ensureAudio = () => {
+    try {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === "suspended") ctx.resume();
+    } catch {}
+  };
+  const beepBurst = () => {
+    if (!ctx) return;
+    const t0 = ctx.currentTime;
+    for (let i = 0; i < 4; i++) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "square"; o.frequency.value = 880;
+      const s = t0 + i * 0.16;
+      g.gain.setValueAtTime(0, s);
+      g.gain.linearRampToValueAtTime(0.18, s + 0.01);
+      g.gain.setValueAtTime(0.18, s + 0.09);
+      g.gain.linearRampToValueAtTime(0, s + 0.1);
+      o.connect(g).connect(ctx.destination);
+      o.start(s); o.stop(s + 0.11);
+    }
+  };
+  const startSound = () => { ensureAudio(); beepBurst(); beepTimer = setInterval(beepBurst, 1000); };
+  const stopSound = () => { clearInterval(beepTimer); beepTimer = null; };
+  // A page reload restores the alarm but browsers block sound until a tap; unlock on any interaction.
+  document.addEventListener("pointerdown", ensureAudio, { passive: true });
+  document.addEventListener("keydown", ensureAudio);
+
+  // ----- UI -----
+  const timeInput = $("alarmTime"), labelInput = $("alarmLabel");
+  function renderAlarmUI() {
+    const st = $("status");
+    if (alarm) {
+      const t = `${pad(alarm.h)}:${pad(alarm.m)}`;
+      st.textContent = snoozeUntil ? `Snoozed` : `On · ${t}`;
+      st.classList.add("on");
+      $("setBtn").textContent = "Update alarm";
+      $("cancelBtn").disabled = false;
+      const target = snoozeUntil ? new Date(snoozeUntil) : nextOccurrence(alarm);
+      const mins = Math.round((target - Date.now()) / 60000);
+      const hh = Math.floor(mins / 60), mm = mins % 60;
+      $("hint").textContent = snoozeUntil
+        ? `Snoozed until ${pad(target.getHours())}:${pad(target.getMinutes())}.`
+        : `Rings in ${hh ? hh + " h " : ""}${mm} min. Keep this page open.`;
+      const ah = $("alarmHand");
+      ah.hidden = false;
+      ah.setAttribute("transform", `rotate(${(alarm.h % 12) * 30 + alarm.m * 0.5} 120 120)`);
+    } else {
+      st.textContent = "Off"; st.classList.remove("on");
+      $("setBtn").textContent = "Set alarm";
+      $("cancelBtn").disabled = true;
+      $("hint").textContent = "The alarm rings while this page is open. The red marker on the dial shows when it's set for.";
+      $("alarmHand").hidden = true;
+    }
+  }
+  function nextOccurrence(a) {
+    const d = new Date(); d.setSeconds(0, 0); d.setHours(a.h, a.m);
+    if (d <= new Date()) d.setDate(d.getDate() + 1);
+    return d;
+  }
+
+  $("setBtn").addEventListener("click", () => {
+    ensureAudio();
+    if (!timeInput.value) { $("hint").textContent = "Choose a time first."; timeInput.focus(); return; }
+    const [h, m] = timeInput.value.split(":").map(Number);
+    alarm = { h, m, label: labelInput.value.trim() };
+    snoozeUntil = null;
+    const n = new Date();
+    lastFiredKey = `${n.toDateString()} ${n.getHours()}:${n.getMinutes()}`; // don't ring for the minute it was set in
+    save(); renderAlarmUI();
+  });
+  $("cancelBtn").addEventListener("click", () => {
+    alarm = null; snoozeUntil = null; stopRinging(); save(); renderAlarmUI();
+  });
+  $("testBtn").addEventListener("click", () => { ensureAudio(); beepBurst(); });
+
+  function startRinging() {
+    if (ringing) return;
+    ringing = true;
+    $("ringTitle").textContent = alarm && alarm.label ? alarm.label : `Alarm · ${pad(alarm.h)}:${pad(alarm.m)}`;
+    $("ringBanner").hidden = false;
+    $("app").classList.add("ringing");
+    startSound();
+    document.title = "⏰ " + $("ringTitle").textContent;
+  }
+  function stopRinging() {
+    ringing = false;
+    $("ringBanner").hidden = true;
+    $("app").classList.remove("ringing");
+    stopSound();
+    document.title = "Wall Clock & Alarm";
+  }
+  $("stopBtn").addEventListener("click", () => { snoozeUntil = null; stopRinging(); renderAlarmUI(); });
+  $("snoozeBtn").addEventListener("click", () => { snoozeUntil = Date.now() + 5 * 60000; stopRinging(); renderAlarmUI(); });
+
+  // ----- Tick -----
+  let lastSec = -1;
+  function frame() {
+    const now = new Date();
+    const ms = now.getMilliseconds(), s = now.getSeconds(), m = now.getMinutes(), h = now.getHours();
+    const sf = s + ms / 1000;
+    secHand.setAttribute("transform", `rotate(${sf * 6} 120 120)`);
+    minHand.setAttribute("transform", `rotate(${(m + sf / 60) * 6} 120 120)`);
+    hourHand.setAttribute("transform", `rotate(${((h % 12) + m / 60) * 30} 120 120)`);
+
+    if (s !== lastSec) {
+      lastSec = s;
+      $("digital").textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+      $("date").textContent = dateFmt.format(now);
+      if (alarm && !ringing) {
+        const key = `${now.toDateString()} ${h}:${m}`;
+        if (snoozeUntil && now.getTime() >= snoozeUntil) { snoozeUntil = null; startRinging(); }
+        else if (!snoozeUntil && h === alarm.h && m === alarm.m && key !== lastFiredKey) { lastFiredKey = key; startRinging(); }
+        if (s === 0) renderAlarmUI();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  const stored = load();
+  if (stored && Number.isInteger(stored.h) && Number.isInteger(stored.m)) {
+    alarm = stored;
+    timeInput.value = `${pad(stored.h)}:${pad(stored.m)}`;
+    labelInput.value = stored.label || "";
+  }
+  renderAlarmUI();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>
